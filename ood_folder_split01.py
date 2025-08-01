@@ -16,10 +16,9 @@ test_ood_pkl = 'pkl/test_ood_ninco.pkl'#'pkl/test_ood_ninco.pkl'
 fc_path = 'pkl/fc.pkl'
 test_id_txt = 'data/NINCO/test_id.txt'#'data/NINCO/test_id.txt'
 test_ood_txt = 'data/NINCO/test_ood.txt'#'data/NINCO/test_ood.txt'
-output_root = 'data/NINCO/pkl01'#다른 형태의 pkl이면 pkl_new01
+output_root = 'data/NINCO/t04'
 methods = ['ViM', 'Residual']
 fpr = 95
-csv_name='evaluate_ood_pkl01.csv'
 # ======================
 
 
@@ -39,9 +38,9 @@ def evaluate(score_train, score_input, fpr):
 
 def main():
     # 1. Load all features
-    feature_train = mmengine.load(train_pkl).squeeze()
-    feature_id = mmengine.load(test_id_pkl).squeeze()
-    feature_ood = mmengine.load(test_ood_pkl).squeeze()
+    feature_train = mmengine.load(train_pkl).squeeze()     # (N_train, D)
+    feature_id = mmengine.load(test_id_pkl).squeeze()      # (N_id, D)
+    feature_ood = mmengine.load(test_ood_pkl)    # (N_ood, D)
     w, b = mmengine.load(fc_path)
     u = -np.matmul(pinv(w), b)
 
@@ -53,29 +52,37 @@ def main():
     eig_vals, eig_vecs = np.linalg.eig(ec.covariance_)
     NS = np.ascontiguousarray((eig_vecs.T[np.argsort(eig_vals * -1)[DIM:]]).T)
 
-    # ✅ threshold 기준을 test_id 기준으로 바꿈
-    logit_id = feature_id @ w.T + b
-    energy_id = logsumexp(logit_id, axis=-1)
-    vlogit_id = norm((feature_id - u) @ NS, axis=-1)
-    alpha = logit_id.max(axis=-1).mean() / vlogit_id.mean()
+    logit_train = feature_train @ w.T + b
+    vlogit_train = norm(np.matmul(feature_train - u, NS), axis=-1)
+    alpha = logit_train.max(axis=-1).mean() / vlogit_train.mean()
+    energy_train = logsumexp(logit_train, axis=-1)
 
-    # ✅ 기준 점수: test_id
-    score_th_vim = -vlogit_id * alpha + energy_id
-    score_th_residual = -norm((feature_id - u) @ NS, axis=-1)
+    # Compute scores for train (threshold 기준)
+    score_th_vim = -vlogit_train * alpha + energy_train
+    score_th_residual = -norm(np.matmul(feature_train - u, NS), axis=-1)
 
     # 3. Compute scores for test sets
+    logit_id = feature_id @ w.T + b
     logit_ood = feature_ood @ w.T + b
+
+    energy_id = logsumexp(logit_id, axis=-1)
     energy_ood = logsumexp(logit_ood, axis=-1)
-    vlogit_ood = norm((feature_ood - u) @ NS, axis=-1) * alpha
-    score_ood_vim = -vlogit_ood + energy_ood
-    score_ood_residual = -norm((feature_ood - u) @ NS, axis=-1)
+
+    vlogit_id = norm(np.matmul(feature_id - u, NS), axis=-1) * alpha
+    vlogit_ood = norm(np.matmul(feature_ood - u, NS), axis=-1) * alpha
+
+    score_id_vim_test = -vlogit_id + energy_id
+    score_ood_vim_test = -vlogit_ood + energy_ood
+
+    score_id_residual_test = -norm(np.matmul(feature_id - u, NS), axis=-1)
+    score_ood_residual_test = -norm(np.matmul(feature_ood - u, NS), axis=-1)
 
     # 4. Apply threshold
-    pred_id_vim = evaluate(score_th_vim, score_th_vim, fpr)
-    pred_ood_vim = evaluate(score_th_vim, score_ood_vim, fpr)
+    pred_id_vim = evaluate(score_th_vim, score_id_vim_test, fpr)
+    pred_ood_vim = evaluate(score_th_vim, score_ood_vim_test, fpr)
 
-    pred_id_res = evaluate(score_th_residual, score_th_residual, fpr)
-    pred_ood_res = evaluate(score_th_residual, score_ood_residual, fpr)
+    pred_id_res = evaluate(score_th_residual, score_id_residual_test, fpr)
+    pred_ood_res = evaluate(score_th_residual, score_ood_residual_test, fpr)
 
     # 5. Build result dataframe
     id_paths = load_txt(test_id_txt)
@@ -96,7 +103,7 @@ def main():
         'Residual': pred_ood_res
     })
     df = pd.concat([df_id, df_ood], ignore_index=True)
-    df.to_csv(csv_name, index=False)
+    df.to_csv('evaluate_ood_recieved.csv', index=False)
     print("✅ Saved: per_image_results.csv")
     return df
 
