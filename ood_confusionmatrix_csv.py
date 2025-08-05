@@ -16,17 +16,19 @@ import shutil
 from pathlib import Path
 
 # ====== 사용자 설정 ======
-cfg_path = 'MOODv2/configs/beit-base-p16_224px.py'
-checkpoint_path = 'MOODv2/pretrain/beitv2-base.pth'
+cfg_path = 'MOODv2_github/MOODv2/configs/beit-base-p16_224px.py'
+checkpoint_path = 'MOODv2_github/MOODv2/pretrain/beitv2-base.pth'
 fc_path = 'pkl/fc.pkl'
 id_train_feature_path = 'pkl/train.pkl'
-id_val_feature_path = 'pkl/ID.pkl' 
+id_val_feature_path = 'pkl/ID.pkl'  # ID 벤치마크 기준 feature
 methods = ['ViM', 'Residual']
+#train_label = 'dataset/plant.txt'
+clip_quantile = 0.99
 fpr = 95 #false positive rate
-test_id_dirs = ['test/0']       # test ID 이미지가 들어 있는 폴더들
-test_ood_dirs = ['test/1']     # test OOD 이미지가 들어 있는 폴더들
-output_root = 'test/result' #confusion matrix folders 저장 장소
-csv_name='result.csv' #출력될 csv 이름
+#test_id_dirs = ['data/NINCO/test_id']       # test ID 이미지가 들어 있는 폴더들
+test_ood_dirs = ['dataset/test/1']     # test OOD 이미지가 들어 있는 폴더들
+output_root = 'dataset/bed_v3_rood_test01' #confusion matrix folders
+csv_name='batch_eval_demo_v3_recieved_ood_test01.csv'
 # =========================
 from pathlib import Path
 
@@ -71,57 +73,25 @@ def extract_image_feature(model, cfg, img_path):
             feat = model.backbone(image)[0]
         return feat.cpu().numpy()
 
-def evaluate_one_image(img_path, feature_id_train, feature_id_val, w, b, u, num_cls):
-    logit_id_val = feature_id_val @ w.T + b
-    logit_id_train = feature_id_train @ w.T + b
+def evaluate_one_image(img_path, vim_score_id, res_score_id, u, NS):
+    
     feature_ood = extract_image_feature(model, cfg, img_path)
     logit_ood = feature_ood @ w.T + b
-    softmax_ood = softmax(logit_ood, axis=-1)
-
     result = {'img_path': img_path}
 
     # ViM
     if 'ViM' in methods:
-        if feature_id_val.shape[-1] >= 2048:
-            DIM = num_cls
-        elif feature_id_val.shape[-1] >= 768:
-            DIM = 512
-        else:
-            DIM = feature_id_val.shape[-1] // 2
-        ec = EmpiricalCovariance(assume_centered=True)
-        ec.fit(feature_id_train - u)
-        eig_vals, eig_vecs = np.linalg.eig(ec.covariance_)
-        NS = np.ascontiguousarray((eig_vecs.T[np.argsort(eig_vals * -1)[DIM:]]).T)
-
-        vlogit_id_train = norm(np.matmul(feature_id_train - u, NS), axis=-1)
-        alpha = logit_id_train.max(axis=-1).mean() / vlogit_id_train.mean()
-
-        vlogit_id_val = norm(np.matmul(feature_id_val - u, NS), axis=-1) * alpha
-        energy_id_val = logsumexp(logit_id_val, axis=-1)
-        score_id = -vlogit_id_val + energy_id_val
-
-        vlogit_ood = norm(np.matmul(feature_ood - u, NS), axis=-1) * alpha
+        
         energy_ood = logsumexp(logit_ood, axis=-1)
+        vlogit_ood = norm(np.matmul(feature_ood - u, NS), axis=-1) * alpha        
         score_ood = -vlogit_ood + energy_ood
-
-        result['ViM'] = evaluate('ViM', score_id, score_ood, fpr)
+        result['ViM'] = evaluate('ViM', vim_score_id, score_ood, fpr)
 
     # Residual
     if 'Residual' in methods:
-        if feature_id_val.shape[-1] >= 2048:
-            DIM = 1000
-        elif feature_id_val.shape[-1] >= 768:
-            DIM = 512
-        else:
-            DIM = feature_id_val.shape[-1] // 2
-        ec = EmpiricalCovariance(assume_centered=True)
-        ec.fit(feature_id_train - u)
-        eig_vals, eig_vecs = np.linalg.eig(ec.covariance_)
-        NS = np.ascontiguousarray((eig_vecs.T[np.argsort(eig_vals * -1)[DIM:]]).T)
-
-        score_id = -norm(np.matmul(feature_id_val - u, NS), axis=-1)
+        
         score_ood = -norm(np.matmul(feature_ood - u, NS), axis=-1)
-        result['Residual'] = evaluate('Residual', score_id, score_ood, fpr)
+        result['Residual'] = evaluate('Residual', res_score_id, score_ood, fpr)
 
     return result
 
@@ -134,20 +104,39 @@ feature_id_train = mmengine.load(id_train_feature_path).squeeze()
 feature_id_val = mmengine.load(id_val_feature_path).squeeze()
 w, b = mmengine.load(fc_path)
 u = -np.matmul(pinv(w), b)
-num_cls=len(b)
+#num_cls=len(b)
 
+if feature_id_val.shape[-1] >= 2048:
+    DIM = 1000#num_cls
+elif feature_id_val.shape[-1] >= 768:
+    DIM = 512
+else:
+    DIM = feature_id_val.shape[-1] // 2
+ec = EmpiricalCovariance(assume_centered=True)
+ec.fit(feature_id_train - u)
+eig_vals, eig_vecs = np.linalg.eig(ec.covariance_)
+NS = np.ascontiguousarray((eig_vecs.T[np.argsort(eig_vals * -1)[DIM:]]).T)
+
+logit_id_train = feature_id_train @ w.T + b
+vlogit_id_train = norm(np.matmul(feature_id_train - u, NS), axis=-1)
+alpha = logit_id_train.max(axis=-1).mean() / vlogit_id_train.mean()
+logit_id_val = feature_id_val @ w.T + b
+vlogit_id_val = norm(np.matmul(feature_id_val - u, NS), axis=-1) * alpha
+energy_id_val = logsumexp(logit_id_val, axis=-1)
+vim_score_id = -vlogit_id_val + energy_id_val
+res_score_id = -norm(np.matmul(feature_id_val - u, NS), axis=-1)
 
 # ✅ 이미지 경로 수집
-id_image_paths = collect_images_from_dirs(test_id_dirs)
+#id_image_paths = collect_images_from_dirs(test_id_dirs)
 ood_image_paths = collect_images_from_dirs(test_ood_dirs)
 
-image_entries = [{'img_path': p, 'true_label': 'ID'} for p in id_image_paths]
-image_entries += [{'img_path': p, 'true_label': 'OOD'} for p in ood_image_paths]
+#image_entries += [{'img_path': p, 'true_label': 'ID'} for p in id_image_paths]
+image_entries = [{'img_path': p, 'true_label': 'OOD'} for p in ood_image_paths]
 
 results = []
 for entry in tqdm(image_entries):
     try:
-        result = evaluate_one_image(entry['img_path'], feature_id_train, feature_id_val, w, b, u,num_cls)
+        result = evaluate_one_image(img_path=entry['img_path'], vim_score_id=vim_score_id, res_score_id=res_score_id, u=u, NS=NS)
         result['true_label'] = entry['true_label']
         results.append(result)
     except Exception as e:
@@ -157,7 +146,7 @@ df = pd.DataFrame(results)
 df.to_csv(csv_name, index=False)
 print(f"✅ Saved: {csv_name}.csv")
 #print(df.head())
-
+'''
 def organize_confusion_matrix(df, output_root):
     """
     Reorganize images based on confusion matrix results for multiple methods.
@@ -189,4 +178,4 @@ def organize_confusion_matrix(df, output_root):
             dest_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(img_path, dest_path)
 
-organize_confusion_matrix(df, output_root)
+organize_confusion_matrix(df, output_root)'''
