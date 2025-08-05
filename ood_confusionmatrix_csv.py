@@ -47,8 +47,6 @@ def evaluate(method, score_id, score_ood, target_fpr):
     return 'ID' if score_ood >= threshold else 'OOD'
 
 def extract_image_feature(model, cfg, img_path):
-    #cfg = mmengine.Config.fromfile(cfg_path)
-    #model = init_model(cfg, checkpoint_path, device='cuda:0').eval()
 
     if hasattr(cfg.model.backbone, 'img_size'):
         img_size = cfg.model.backbone.img_size
@@ -137,14 +135,14 @@ feature_id_val = mmengine.load(id_val_feature_path).squeeze()
 w, b = mmengine.load(fc_path)
 u = -np.matmul(pinv(w), b)
 num_cls=len(b)
-#logit_id_val = feature_id_val @ w.T + b
+
 
 # ✅ 이미지 경로 수집
-#id_image_paths = collect_images_from_dirs(test_id_dirs)
+id_image_paths = collect_images_from_dirs(test_id_dirs)
 ood_image_paths = collect_images_from_dirs(test_ood_dirs)
 
-#image_entries += [{'img_path': p, 'true_label': 'ID'} for p in id_image_paths]
-image_entries = [{'img_path': p, 'true_label': 'OOD'} for p in ood_image_paths]
+image_entries = [{'img_path': p, 'true_label': 'ID'} for p in id_image_paths]
+image_entries += [{'img_path': p, 'true_label': 'OOD'} for p in ood_image_paths]
 
 results = []
 for entry in tqdm(image_entries):
