@@ -1,0 +1,15 @@
+ood_confusionmatrix_csv.py의
+# ====== 사용자 설정 ======
+cfg_path = 'MOODv2/configs/beit-base-p16_224px.py'
+checkpoint_path = 'MOODv2/pretrain/beitv2-base.pth'
+fc_path = 'pkl/fc.pkl'
+id_train_feature_path = 'pkl/train.pkl'
+id_val_feature_path = 'pkl/ID.pkl' 
+methods = ['ViM', 'Residual']
+fpr = 95 #false positive rate
+test_id_dirs = ['test/0']       # test ID 이미지가 들어 있는 폴더들
+test_ood_dirs = ['test/1']     # test OOD 이미지가 들어 있는 폴더들
+output_root = 'test/result' #confusion matrix folders 저장 장소
+csv_name='result.csv' #출력될 csv 이름
+# =========================
+부분에 입력 후 실행
