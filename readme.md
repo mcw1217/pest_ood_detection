@@ -1,0 +1,26 @@
+## ood_confusionmatrix_csv.py
+ood_confusionmatrix_csv.py 상단    
+'사용자 설정'에서   
+cfg_path = 'MOODv2/configs/beit-base-p16_224px.py'   
+checkpoint_path = 'MOODv2/pretrain/beitv2-base.pth'   
+fc_path = 'pkl/fc.pkl'   
+id_train_feature_path = 'pkl/train.pkl'   
+id_val_feature_path = 'pkl/ID.pkl'    
+methods = ['ViM', 'Residual']   
+fpr = 95 #false positive rate   
+test_id_dirs = ['test/0']       # test ID 이미지가 들어 있는 폴더들   
+test_ood_dirs = ['test/1']     # test OOD 이미지가 들어 있는 폴더들   
+output_root = 'test/result' #confusion matrix folders 저장 장소   
+csv_name='result.csv' #출력될 csv 이름   
+부분에 입력 후 실행
+
+## load_dataset.py
+이미지 하나가 뜨면   
+D 누르면 id/ 폴더에 복사   
+F 누르면 ood/ 폴더에 복사   
+← 누르면 이전 이미지로 감    
+→ 누르면 다음 이미지로 감    
+(방향키는 복사 안 함)   
+이전에 라벨링했던 이미지에서 D나 F를 누르면   
+예전에 라벨링되어 있던 것이 삭제되고 새로 라벨링한 폴더에 다시 복사됨
+(기존 라벨을 무시하고 새로운 라벨로 덮어쓰기)
