@@ -2,19 +2,27 @@ import os
 import shutil
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageFile
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # === 사용자 설정 ===
-# root/file 디렉토리의 경로 (절대경로로 입력하거나 동적으로 설정 가능)
-SOURCE_DIR = '../cms_crawling/img'  # 여기를 실제 경로로 바꿔줘
+# root 디렉토리의 경로 (절대경로로 입력하거나 동적으로 설정 가능)
+SOURCE_DIR = 'yet'  #../cms_crawling/img
 
 # 프로젝트 내부 저장 폴더
-ID_DIR = 'id_new'
-OOD_DIR = 'ood_new'
+ID_DIR = 'id'
+OOD_DIR = 'ood'
+UNKNOWN_DIR = 'unknown'
+
+# 시작 위치 선택 
+START_INDEX = None          # 정수 입력 (예: 10 → 11번째 이미지부터 시작), None이면 무시
+START_FILE = "downloaded_image.jpg"  # START_INDEX가 None일 때만 적용됨
 
 # === 디렉토리 생성 ===
 os.makedirs(ID_DIR, exist_ok=True)
 os.makedirs(OOD_DIR, exist_ok=True)
+os.makedirs(UNKNOWN_DIR, exist_ok=True)
 
 # === 이미지 파일 목록 불러오기 ===
 image_files = [f for f in os.listdir(SOURCE_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
@@ -26,10 +34,8 @@ current_index = 0  # 현재 보여지는 이미지 인덱스
 root = tk.Tk()
 root.title("image labeling tool")
 
-canvas = tk.Canvas(root, width=800, height=600)
+canvas = tk.Canvas(root, width=900, height=900)#800, 600
 canvas.pack()
-
-#image_on_canvas = None
 
 def load_image(index):
     global image_on_canvas
@@ -54,8 +60,8 @@ def label_image(label):
     filename = image_files[current_index]
     src_path = os.path.join(SOURCE_DIR, filename)
 
-    # === 기존 위치에서 삭제 (id/ 및 ood/)
-    for folder in [ID_DIR, OOD_DIR]:
+    # === 기존 위치에서 삭제 (id/ 및 ood/ 및 unknown/)
+    for folder in [ID_DIR, OOD_DIR, UNKNOWN_DIR]:
         existing_path = os.path.join(folder, filename)
         if os.path.exists(existing_path):
             os.remove(existing_path)
@@ -66,6 +72,8 @@ def label_image(label):
         dst_path = os.path.join(ID_DIR, filename)
     elif label == 'ood':
         dst_path = os.path.join(OOD_DIR, filename)
+    elif label == 'unknown':   
+        dst_path = os.path.join(UNKNOWN_DIR, filename)
     else:
         return
 
@@ -95,15 +103,32 @@ def on_key(event):
         label_image('id')
     elif key == 'f':
         label_image('ood')
+    elif key == 'space':
+        label_image('unknown')
 
 # === 키 바인딩 ===
 root.bind("<Left>", on_key)
 root.bind("<Right>", on_key)
 root.bind("<d>", on_key)
 root.bind("<f>", on_key)
+root.bind("<space>", on_key)
 
 # === 첫 이미지 로드 ===
 if image_files:
+    if START_INDEX is not None:
+        if 0 <= START_INDEX < len(image_files):
+            current_index = START_INDEX
+            print(f"START_INDEX 지정됨 → {image_files[current_index]} (인덱스 {current_index})")
+        else:
+            current_index = 0
+            print(f"START_INDEX 범위 초과, 기본값 시작 → {image_files[current_index]} (인덱스 0)")
+    elif START_FILE and START_FILE in image_files:
+        current_index = image_files.index(START_FILE)
+        print(f"START_FILE 지정됨 → {START_FILE} (인덱스 {current_index})")
+    else:
+        current_index = 0
+        print(f"기본값 시작 → {image_files[current_index]} (인덱스 {current_index})")
+
     load_image(current_index)
 else:
     print("이미지가 존재하지 않습니다.")
