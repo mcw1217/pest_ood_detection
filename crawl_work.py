@@ -8,24 +8,25 @@ import time
 import urllib.request
 import os
 #식물 일러스트
-search='https://www.google.co.kr/search?q=%EC%8B%9D%EB%AC%BC+%EC%9D%BC%EB%9F%AC%EC%8A%A4%ED%8A%B8&sca_esv=04a013b6530774b2&hl=ko&sxsrf=AE3TifOSNJHPnuTUA7ceXI1xBLvQh8pcAA:1760500181997&source=hp&biw=1346&bih=382&ei=1RnvaMH_OpqYwbkPo_rQ4AM&iflsig=AOw8s4IAAAAAaO8n5VJrG-QVrlheM3-slrJopp8XPtdj&ved=0ahUKEwiBvuSfpqWQAxUaTDABHSM9FDwQ4dUDCBc&uact=5&oq=%EC%8B%9D%EB%AC%BC+%EC%9D%BC%EB%9F%AC%EC%8A%A4%ED%8A%B8&gs_lp=EgNpbWciE-yLneusvCDsnbzrn6zsiqTtirgyBxAjGCcYyQIyBxAjGCcYyQIyCBAAGIAEGLEDMgUQABiABDIEEAAYAzIEEAAYAzIFEAAYgAQyBRAAGIAEMgQQABgDMgUQABiABEjRG1AAWLkZcAB4AJABAJgBxwWgAZohqgEDNi02uAEDyAEA-AEBigILZ3dzLXdpei1pbWeYAgKgApALwgILEAAYgAQYsQMYgwGYAwCSBwM1LTKgB5oksgcDNS0yuAeQC8IHBTAuMS4xyAcI&sclient=img&udm=2'
-
-driver = webdriver.Chrome() 
+search=''
+#search에 이미지 검색 url 넣기
+driver = webdriver.Chrome()
+driver.maximize_window() 
 driver.get(search) 
 #5. 스크롤 내리기 및 이미지 수집 
-SCROLL_PAUSE_TIME = 3 # 스크롤 간 대기 시간
-last_height = driver.execute_script('return document.body.scrollHeight') 
-# 스크롤을 최대로 내리기 
-driver.execute_script('window.scrollTo(0, document.body.scrollHeight);') 
-time.sleep(SCROLL_PAUSE_TIME) 
-# 새로운 높이를 가져와서 이전 높이와 비교 
-new_height = driver.execute_script('return document.body.scrollHeight') 
-'''
-if new_height == last_height: 
-    driver.find_element(By.CSS_SELECTOR, ".mye4qd").click()
-''' 
-last_height = new_height 
-time.sleep(SCROLL_PAUSE_TIME) 
+SCROLL_PAUSE_TIME = 1
+last_height = driver.execute_script("return document.body.scrollHeight")
+while True:
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(SCROLL_PAUSE_TIME)
+    new_height = driver.execute_script("return document.body.scrollHeight")
+    if new_height == last_height:
+        try:
+            driver.find_element(By.CSS_SELECTOR, ".mye4qd").click()
+        except:
+            break
+    last_height = new_height
+
 # ✅ 모든 <a href=...> 제거 (탭 열림 방지용) 
 driver.execute_script("""
     let anchors = document.querySelectorAll('a[href]');
