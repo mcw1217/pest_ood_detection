@@ -2,7 +2,7 @@
 
 구글 드라이브의 dataset_and_files/최종 데이터 내에서
    new_data_pkl.zip/plant.pkl
-      : train용 (옛날 plant/0에 있는 이미지들 사용)
+      : train용 (옛날 plant/0에 있는 이미지들 (285957개) 사용)
    new_data_pkl.zip/my_cms_id03.pkl
       : id_my_cms(18128개) 데이터 사용
          test용 id
@@ -10,6 +10,11 @@
       : ood_combine(14706개) 데이터 사용
          test용 ood
 ===================
+#실험 설명: 
+train을 6:4로 나눈 후 6을 train, 4를 val로 삼음
+train6은 ns 계산에 사용 + val4는 threshold 계산
+따로 산출한 ns, threshold로 ood detection
+
 ood_new_ns_threshold.py
    : train feature를 6:4로 나눈 후 ns, alpha(vim에 사용), threshold를 json을 따로 저장함 
      명령어:

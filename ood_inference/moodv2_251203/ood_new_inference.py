@@ -121,15 +121,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-'''
-Loaded id_test: (18128, 768)
-Loaded ood_test my_cms_ood_combine03: (14706, 768)
-
-Running inference for: ViM
-ViM | my_cms_ood_combine03 | AUROC 0.8717 | fpr@tpr95 0.3586 | chosen_thr -2.701252 | fpr_chosen 0.2440
-
-Running inference for: Residual
-Residual | my_cms_ood_combine03 | AUROC 0.8834 | fpr@tpr95 0.3456 | chosen_thr -8.466538 | fpr_chosen 0.2322
-
-Written eval report to outputs/ood_new_inference01.json
-'''
