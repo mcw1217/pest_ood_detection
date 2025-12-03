@@ -1,0 +1,28 @@
+(fc.pkl: 기존 파일을 fc에 사용)
+
+구글 드라이브의 dataset_and_files/최종 데이터 내에서
+   new_data_pkl.zip/plant.pkl
+      : train용 (옛날 plant/0에 있는 이미지들 사용)
+   new_data_pkl.zip/my_cms_id03.pkl
+      : id_my_cms(18128개) 데이터 사용
+         test용 id
+   new_data_pkl.zip/my_cms_ood_combine03.pkl
+      : ood_combine(14706개) 데이터 사용
+         test용 ood
+===================
+ood_new_ns_threshold.py
+   : train feature를 6:4로 나눈 후 ns, alpha(vim에 사용), threshold를 json을 따로 저장함 
+     명령어:
+        fc: fc 파일 경로 입력(fc.pkl)
+        train_all: train feature 파일 경로 입력(plant.pkl)
+        save_json: ns,alpha, threshold 저장할 json 파일 경로
+        (optional)split_seed:train feature 분할 할 때 seed 설정 가능(입력 안 하면 default 420)
+ood_new_inference.py
+   : 저장한 ns와 threshold 기반으로 성능을 json으로 출력
+     명령어:
+        fc: fc 파일 경로 입력
+        ns_json: ns,alpha, threshold 저장된 json 파일 경로(save_json 명령어와 동일)
+        id_test_feat: test용 id 파일 경로(my_cms_id03.pkl)
+        ood_test_feats: test용 ood 파일 경로(my_cms_ood_combine03.pkl) (여러 ood 입력 가능)
+        report: 성능 저장할 json 파일 경로
+       
