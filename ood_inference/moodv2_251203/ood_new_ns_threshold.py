@@ -5,7 +5,7 @@ Usage example:
 python3 ood_new_ns_threshold01.py \
   --fc pkl/fc.pkl \
   --train_all_feat pkl/plant.pkl \
-  --save_json outputs/ood_new_ns_threshold01.json
+  --save_json outputs/ood_new_ns_threshold01_max.json
 
 
 """
@@ -23,7 +23,6 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--fc', required=True, help='classifier weights file (w,b) for logits')
     p.add_argument('--train_all_feat', required=True, help='ID train ALL features (will split 60/40)')
-    #p.add_argument('--ood_feats', nargs='*', default=[], help='OOD feature files (for thresholding)')
     p.add_argument('--save_json', required=True, help='where to write NS+threshold json')
     p.add_argument('--split_seed', type=int, default=420, help='random seed for 60/40 split')
     return p.parse_args()
@@ -96,16 +95,35 @@ def main():
         
         recall_num = int(np.floor(0.95 * len(score_id_val4)))#0.95=tpr
         thresh = np.sort(score_id_val4)[-recall_num]#id/ood 구분 threshold(id 중 상위 95%)
+        max=np.max(score_id_val4)
         print(f'{method}: shape of score_id_val4={score_id_val4.shape}, tpr95 thresh={thresh:.6f}')
         #ViM: shape of score_id_val4=(114383,), tpr95 thresh=-2.701252
         #Residual: shape of score_id_val4=(114383,), tpr95 thresh=-8.466538
-
         results['methods'][method] = {
             'alpha': None if alpha is None else float(alpha),
-            'threshold': float(thresh)
+            'threshold': float(thresh),
+            'max': float(max)
         }
         #print(f'{method} chosen_threshold = {chosen:.6f}')
         
+    '''
+    # NS와 threshold 값들을 float로 변환하는 함수
+    def convert_to_float(obj):
+        if isinstance(obj, np.float32) or isinstance(obj, np.float64):
+            return float(obj)  # numpy 타입을 float로 변환
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()  # numpy 배열을 리스트로 변환
+        elif isinstance(obj, dict):
+            return {key: convert_to_float(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_float(item) for item in obj]
+        return obj
+    # 변환된 results를 JSON으로 저장
+    with open(output_json, 'w') as f:
+        json.dump(convert_to_float(results), f, indent=2)
+
+    print(f'JSON file saved: {output_json}')
+    '''
 
     # save JSON
     os.makedirs(os.path.dirname(args.save_json), exist_ok=True)
