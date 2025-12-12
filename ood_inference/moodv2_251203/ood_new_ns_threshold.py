@@ -106,25 +106,6 @@ def main():
         }
         #print(f'{method} chosen_threshold = {chosen:.6f}')
         
-    '''
-    # NS와 threshold 값들을 float로 변환하는 함수
-    def convert_to_float(obj):
-        if isinstance(obj, np.float32) or isinstance(obj, np.float64):
-            return float(obj)  # numpy 타입을 float로 변환
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()  # numpy 배열을 리스트로 변환
-        elif isinstance(obj, dict):
-            return {key: convert_to_float(value) for key, value in obj.items()}
-        elif isinstance(obj, list):
-            return [convert_to_float(item) for item in obj]
-        return obj
-    # 변환된 results를 JSON으로 저장
-    with open(output_json, 'w') as f:
-        json.dump(convert_to_float(results), f, indent=2)
-
-    print(f'JSON file saved: {output_json}')
-    '''
-
     # save JSON
     os.makedirs(os.path.dirname(args.save_json), exist_ok=True)
     with open(args.save_json, 'w') as f:
